@@ -1,12 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, Filter, Share2, History } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { useToast } from "@/hooks/use-toast";
-import { cn } from '@/lib/utils';
 import type { Note } from '@/lib/types';
 import { NoteItem } from '@/components/NoteItem';
+import { Share2, History } from 'lucide-react';
+import { Button } from './ui/button';
 
 interface ChronoNoteProps {
   initialNotesData?: string;
@@ -24,7 +23,7 @@ export function ChronoNote({ initialNotesData }: ChronoNoteProps) {
       setCurrentTime(new Date().toLocaleTimeString('en-US', { hour12: false }));
     }, 1000);
 
-    // Set initial time on client
+    // Set initial time on client to avoid hydration mismatch
     setCurrentTime(new Date().toLocaleTimeString('en-US', { hour12: false }));
 
     return () => clearInterval(timer);
@@ -77,12 +76,12 @@ export function ChronoNote({ initialNotesData }: ChronoNoteProps) {
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
+    setEditingNoteId(null);
   }, []);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        setEditingNoteId(null);
         handleBlur();
       }
     };
@@ -149,29 +148,8 @@ export function ChronoNote({ initialNotesData }: ChronoNoteProps) {
 
   return (
     <div className="max-w-3xl mx-auto p-4 sm:p-6 lg:p-8 font-sans">
-      <header className="flex items-center justify-between mb-8">
-        <Button variant="ghost" size="icon">
-          <ArrowLeft className="h-5 w-5" />
-          <span className="sr-only">Back</span>
-        </Button>
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon">
-            <Filter className="h-5 w-5" />
-            <span className="sr-only">Filter</span>
-          </Button>
-          <Button variant="ghost" size="icon" onClick={handleShare}>
-            <Share2 className="h-5 w-5" />
-            <span className="sr-only">Share Notes</span>
-          </Button>
-          <Button variant="ghost" size="icon" onClick={loadNotes}>
-            <History className="h-5 w-5" />
-            <span className="sr-only">Reload notes</span>
-          </Button>
-        </div>
-      </header>
-
-      <div className='px-4'>
-        <h2 className="text-sm font-medium text-muted-foreground mb-4">Today</h2>
+      <div className='px-4 pt-12'>
+        <h2 className="text-base font-medium text-muted-foreground mb-10">Today</h2>
 
         <div className="flex flex-col">
           {notes.map((note, index) => (
@@ -187,8 +165,8 @@ export function ChronoNote({ initialNotesData }: ChronoNoteProps) {
           ))}
         </div>
         
-        <div className="flex items-start gap-4 mt-1 w-full">
-           <span className="text-sm text-muted-foreground font-mono w-20 shrink-0 pt-2">
+        <div className="flex items-baseline gap-4 mt-2 w-full">
+           <span className="text-sm text-muted-foreground font-mono w-24 shrink-0 text-right">
             {currentTime || '00:00:00'}
           </span>
           <div className='flex-grow'>
@@ -197,13 +175,14 @@ export function ChronoNote({ initialNotesData }: ChronoNoteProps) {
               value={newNoteContent}
               onChange={(e) => setNewNoteContent(e.target.value)}
               placeholder="Start writing..."
-              className="w-full text-base bg-transparent border-none focus:ring-0 p-0 m-0 h-9"
+              className="w-full text-base bg-transparent border-none focus:ring-0 p-0 m-0 placeholder:text-muted-foreground"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault();
                   handleAddNewNote();
                 }
               }}
+              onBlur={() => newNoteContent.trim() && handleAddNewNote()}
             />
           </div>
         </div>

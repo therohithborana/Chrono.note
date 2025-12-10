@@ -1,9 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { format, formatDistanceStrict } from 'date-fns';
-import { cn } from '@/lib/utils';
 import type { Note } from '@/lib/types';
-import { Trash2 } from 'lucide-react';
-import { Button } from './ui/button';
 
 interface NoteItemProps {
   note: Note;
@@ -44,32 +41,32 @@ export function NoteItem({ note, nextNoteTimestamp, onUpdate, onDelete, isEditin
   }, [isEditing]);
 
   const handleBlur = () => {
-    if (content !== note.content) {
-      onUpdate(note.id, content);
+    if (content.trim() === '') {
+      onDelete(note.id);
     } else {
-       onUpdate(note.id, note.content); // To signal exit from editing
+      onUpdate(note.id, content);
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      handleBlur();
+      inputRef.current?.blur();
     }
     if (e.key === 'Escape') {
       setContent(note.content);
-      // Let the global handler in ChronoNote handle the blur
+      inputRef.current?.blur();
     }
   };
 
   return (
     <div className="group flex flex-col">
-      <div className="flex flex-row items-start gap-4">
-        <div className="w-20 shrink-0 font-mono text-sm text-right">
-          <span className="text-muted-foreground pt-2">
+      <div className="flex flex-row items-baseline gap-4">
+        <div className="w-24 shrink-0 font-mono text-sm text-right">
+          <span className="text-muted-foreground">
             {format(new Date(note.timestamp), 'HH:mm:ss')}
           </span>
         </div>
-        <div className="flex-grow pt-0.5" onClick={() => onSetEditing(note.id)}>
+        <div className="flex-grow" onClick={() => onSetEditing(note.id)}>
           {isEditing ? (
             <input
               ref={inputRef}
@@ -78,25 +75,16 @@ export function NoteItem({ note, nextNoteTimestamp, onUpdate, onDelete, isEditin
               onChange={(e) => setContent(e.target.value)}
               onBlur={handleBlur}
               onKeyDown={handleKeyDown}
-              className="w-full text-base bg-transparent border-none focus:ring-0 p-0 m-0 h-8"
+              className="w-full text-base bg-transparent border-none focus:ring-0 p-0 m-0"
             />
           ) : (
-            <p className="mt-0 text-foreground/90 whitespace-pre-wrap leading-relaxed h-8 pt-1.5">{note.content}</p>
+            <p className="text-foreground/90 whitespace-pre-wrap">{content}</p>
           )}
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="shrink-0 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-          onClick={() => onDelete(note.id)}
-        >
-          <Trash2 className="h-4 w-4" />
-          <span className="sr-only">Delete note</span>
-        </Button>
       </div>
       {duration && (
         <div className="flex flex-row items-start gap-4 h-6">
-          <div className="w-20 shrink-0 font-mono text-xs text-right text-muted-foreground/80 mt-1">
+          <div className="w-24 shrink-0 font-mono text-xs text-right text-muted-foreground/80 mt-1">
             +{duration}
           </div>
         </div>
