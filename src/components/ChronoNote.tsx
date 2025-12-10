@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, Filter, Share2, History, Trash2 } from 'lucide-react';
+import { ArrowLeft, Filter, Share2, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from "@/hooks/use-toast";
 import { cn } from '@/lib/utils';
@@ -61,8 +61,9 @@ export function ChronoNote({ initialNotesData }: ChronoNoteProps) {
   }, [initialNotesData, toast]);
 
   const updateNotes = (updatedNotes: Note[]) => {
-    setNotes(updatedNotes);
-    localStorage.setItem('chrono-notes', JSON.stringify(updatedNotes));
+    const sortedNotes = updatedNotes.sort((a, b) => a.timestamp - b.timestamp);
+    setNotes(sortedNotes);
+    localStorage.setItem('chrono-notes', JSON.stringify(sortedNotes));
   };
   
   const handleAddNewNote = useCallback(() => {
@@ -80,7 +81,7 @@ export function ChronoNote({ initialNotesData }: ChronoNoteProps) {
 
   const handleUpdateNote = useCallback((noteId: string, content: string) => {
     const updatedNotes = notes.map(note => 
-      note.id === noteId ? { ...note, content, timestamp: Date.now() } : note
+      note.id === noteId ? { ...note, content } : note
     );
     updateNotes(updatedNotes);
   }, [notes]);
