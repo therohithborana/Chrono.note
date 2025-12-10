@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, Filter, Share2, ClockCounterClockwise, Trash2 } from 'lucide-react';
+import { ArrowLeft, Filter, Share2, History, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from "@/hooks/use-toast";
 import { cn } from '@/lib/utils';
@@ -125,7 +125,7 @@ export function ChronoNote({ initialNotesData }: ChronoNoteProps) {
             <span className="sr-only">Share Notes</span>
           </Button>
           <Button variant="ghost" size="icon" onClick={loadNotes}>
-            <ClockCounterClockwise className="h-5 w-5" />
+            <History className="h-5 w-5" />
             <span className="sr-only">Reload notes</span>
           </Button>
         </div>
