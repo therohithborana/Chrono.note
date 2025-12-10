@@ -1,11 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { FileDown, Share2, Eye, EyeOff, ClipboardCopy } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { ArrowLeft, Filter, Share2, ClockCounterClockwise, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { useToast } from "@/hooks/use-toast";
 import { cn } from '@/lib/utils';
 import type { Note } from '@/lib/types';
@@ -18,13 +15,9 @@ interface ChronoNoteProps {
 export function ChronoNote({ initialNotesData }: ChronoNoteProps) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [newNoteContent, setNewNoteContent] = useState('');
-  const [isBlurred, setIsBlurred] = useState(false);
-  const [copied, setCopied] = useState(false);
   const { toast } = useToast();
-  const notesEndRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => {
+  const loadNotes = useCallback(() => {
     try {
       const savedNotes = localStorage.getItem('chrono-notes');
       if (savedNotes) {
@@ -32,8 +25,17 @@ export function ChronoNote({ initialNotesData }: ChronoNoteProps) {
       }
     } catch (error) {
       console.error('Failed to load notes from local storage', error);
+      toast({
+        title: "Error loading notes",
+        description: "Could not load notes from your browser's storage.",
+        variant: "destructive",
+      });
     }
-  }, []);
+  }, [toast]);
+  
+  useEffect(() => {
+    loadNotes();
+  }, [loadNotes]);
 
   useEffect(() => {
     if (initialNotesData) {
@@ -58,24 +60,10 @@ export function ChronoNote({ initialNotesData }: ChronoNoteProps) {
     }
   }, [initialNotesData, toast]);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "'" && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        setIsBlurred(prev => !prev);
-      }
-      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        handleAddNewNote();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [newNoteContent]);
-
-  useEffect(() => {
-    notesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [notes]);
+  const updateNotes = (updatedNotes: Note[]) => {
+    setNotes(updatedNotes);
+    localStorage.setItem('chrono-notes', JSON.stringify(updatedNotes));
+  };
   
   const handleAddNewNote = useCallback(() => {
     if (newNoteContent.trim()) {
@@ -85,25 +73,21 @@ export function ChronoNote({ initialNotesData }: ChronoNoteProps) {
         timestamp: Date.now(),
       };
       const updatedNotes = [...notes, newNote];
-      setNotes(updatedNotes);
-      localStorage.setItem('chrono-notes', JSON.stringify(updatedNotes));
+      updateNotes(updatedNotes);
       setNewNoteContent('');
     }
   }, [newNoteContent, notes]);
 
-  const handleExport = useCallback(() => {
-    const textContent = notes
-      .map(note => `[${new Date(note.timestamp).toLocaleString()}]\n${note.content}`)
-      .join('\n\n---\n\n');
-    const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `chrononotes-${new Date().toISOString().split('T')[0]}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const handleUpdateNote = useCallback((noteId: string, content: string) => {
+    const updatedNotes = notes.map(note => 
+      note.id === noteId ? { ...note, content, timestamp: Date.now() } : note
+    );
+    updateNotes(updatedNotes);
+  }, [notes]);
+  
+  const handleDeleteNote = useCallback((noteId: string) => {
+    const updatedNotes = notes.filter(note => note.id !== noteId);
+    updateNotes(updatedNotes);
   }, [notes]);
 
   const handleShare = useCallback(() => {
@@ -120,69 +104,78 @@ export function ChronoNote({ initialNotesData }: ChronoNoteProps) {
     const url = `${window.location.origin}/?notes=${encodedData}`;
 
     navigator.clipboard.writeText(url).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      toast({ title: "Share link copied to clipboard!" });
     });
   }, [notes, toast]);
 
   return (
-    <Card className="max-w-3xl mx-auto shadow-2xl shadow-primary/10">
-      <CardHeader className="flex-row items-center justify-between">
-        <CardTitle className="font-headline text-3xl tracking-tight">ChronoNote</CardTitle>
+    <div className="max-w-3xl mx-auto p-4 sm:p-6 lg:p-8 font-sans">
+      <header className="flex items-center justify-between mb-8">
+        <Button variant="ghost" size="icon">
+          <ArrowLeft className="h-5 w-5" />
+          <span className="sr-only">Back</span>
+        </Button>
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" onClick={() => setIsBlurred(p => !p)}>
-            {isBlurred ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-            <span className="sr-only">{isBlurred ? 'Unhide notes' : 'Hide notes'}</span>
-          </Button>
-          <Button variant="ghost" size="icon" onClick={handleExport} disabled={notes.length === 0}>
-            <FileDown className="h-5 w-5" />
-            <span className="sr-only">Export as .txt</span>
+          <Button variant="ghost" size="icon">
+            <Filter className="h-5 w-5" />
+            <span className="sr-only">Filter</span>
           </Button>
           <Button variant="ghost" size="icon" onClick={handleShare}>
-            {copied ? <ClipboardCopy className="h-5 w-5 text-accent-foreground" /> : <Share2 className="h-5 w-5" />}
+            <Share2 className="h-5 w-5" />
             <span className="sr-only">Share Notes</span>
           </Button>
+          <Button variant="ghost" size="icon" onClick={loadNotes}>
+            <ClockCounterClockwise className="h-5 w-5" />
+            <span className="sr-only">Reload notes</span>
+          </Button>
         </div>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-col gap-4">
-          <Textarea
-            ref={textareaRef}
-            value={newNoteContent}
-            onChange={(e) => setNewNoteContent(e.target.value)}
-            placeholder="What's on your mind? (Ctrl+Enter to save)"
-            className="min-h-[100px] text-base focus-visible:ring-primary"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-                e.preventDefault();
-                handleAddNewNote();
-              }
-            }}
-          />
-          <Button onClick={handleAddNewNote} className="w-full sm:w-auto sm:self-end">Add Note</Button>
+      </header>
+
+      <div className='px-4'>
+        <h2 className="text-sm font-medium text-muted-foreground mb-4">Today</h2>
+
+        <div className="flex flex-col">
+          {notes.map((note, index) => (
+            <NoteItem
+              key={note.id}
+              note={note}
+              previousNoteTimestamp={index > 0 ? notes[index - 1].timestamp : null}
+              onUpdate={handleUpdateNote}
+              onDelete={handleDeleteNote}
+            />
+          ))}
         </div>
-        <Separator className="my-6" />
-        <div className="relative">
-          {notes.length > 0 ? (
-            <div className={cn('space-y-0 transition-all duration-300', { 'blur-md select-none pointer-events-none': isBlurred })}>
-              {notes.map((note, index) => (
-                <NoteItem
-                  key={note.id}
-                  note={note}
-                  previousNoteTimestamp={index > 0 ? notes[index - 1].timestamp : null}
-                  isLast={index === notes.length - 1}
-                />
-              ))}
-               <div ref={notesEndRef} />
-            </div>
-          ) : (
-            <div className="text-center text-muted-foreground py-12">
-              <p className="font-medium">No notes yet.</p>
-              <p className="text-sm">Your timestamped journey begins here.</p>
-            </div>
-          )}
+        
+        <div className="flex items-start gap-4 mt-1 w-full">
+           <span className="text-sm text-muted-foreground font-mono w-20 shrink-0 pt-2">
+            {format(new Date(), 'HH:mm:ss')}
+          </span>
+          <div className='flex-grow'>
+            <input
+              type="text"
+              value={newNoteContent}
+              onChange={(e) => setNewNoteContent(e.target.value)}
+              placeholder="Start writing..."
+              className="w-full text-base bg-transparent border-none focus:ring-0 p-0 m-0 h-9"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleAddNewNote();
+                }
+              }}
+            />
+          </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
+}
+
+// Helper needed for new note timestamp
+const format = (date: Date, fmt: string) => {
+  const pad = (n:number) => n.toString().padStart(2, '0');
+  if (fmt === 'HH:mm:ss') {
+    return `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+  }
+  return date.toISOString();
 }
