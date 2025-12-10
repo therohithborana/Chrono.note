@@ -16,16 +16,16 @@ export function ChronoNote({ initialNotesData }: ChronoNoteProps) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [newNoteContent, setNewNoteContent] = useState('');
   const [currentTime, setCurrentTime] = useState('');
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentTime(format(new Date(), 'HH:mm:ss'));
+      setCurrentTime(new Date().toLocaleTimeString('en-US', { hour12: false }));
     }, 1000);
 
-    // Set initial time
-    setCurrentTime(format(new Date(), 'HH:mm:ss'));
-    
+    setCurrentTime(new Date().toLocaleTimeString('en-US', { hour12: false }));
+
     return () => clearInterval(timer);
   }, []);
 
@@ -44,7 +44,7 @@ export function ChronoNote({ initialNotesData }: ChronoNoteProps) {
       });
     }
   }, [toast]);
-  
+
   useEffect(() => {
     loadNotes();
   }, [loadNotes]);
@@ -71,6 +71,25 @@ export function ChronoNote({ initialNotesData }: ChronoNoteProps) {
       }
     }
   }, [initialNotesData, toast]);
+  
+  const handleBlur = useCallback(() => {
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setEditingNoteId(null);
+        handleBlur();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleBlur]);
 
   const updateNotes = (updatedNotes: Note[]) => {
     const sortedNotes = updatedNotes.sort((a, b) => a.timestamp - b.timestamp);
@@ -92,6 +111,11 @@ export function ChronoNote({ initialNotesData }: ChronoNoteProps) {
   }, [newNoteContent, notes]);
 
   const handleUpdateNote = useCallback((noteId: string, content: string) => {
+    setEditingNoteId(null);
+    if (content.trim() === '') {
+      handleDeleteNote(noteId);
+      return;
+    }
     const updatedNotes = notes.map(note => 
       note.id === noteId ? { ...note, content } : note
     );
@@ -152,6 +176,8 @@ export function ChronoNote({ initialNotesData }: ChronoNoteProps) {
             <NoteItem
               key={note.id}
               note={note}
+              isEditing={editingNoteId === note.id}
+              onSetEditing={() => setEditingNoteId(note.id)}
               previousNoteTimestamp={index > 0 ? notes[index - 1].timestamp : null}
               onUpdate={handleUpdateNote}
               onDelete={handleDeleteNote}
@@ -182,13 +208,4 @@ export function ChronoNote({ initialNotesData }: ChronoNoteProps) {
       </div>
     </div>
   );
-}
-
-// Helper needed for new note timestamp
-const format = (date: Date, fmt: string) => {
-  const pad = (n:number) => n.toString().padStart(2, '0');
-  if (fmt === 'HH:mm:ss') {
-    return `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
-  }
-  return date.toISOString();
 }

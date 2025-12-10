@@ -10,6 +10,8 @@ interface NoteItemProps {
   previousNoteTimestamp: number | null;
   onUpdate: (id: string, content: string) => void;
   onDelete: (id: string) => void;
+  isEditing: boolean;
+  onSetEditing: (id: string) => void;
 }
 
 const formatDuration = (duration: string) => {
@@ -22,14 +24,17 @@ const formatDuration = (duration: string) => {
     .replace(' hour', 'h');
 };
 
-export function NoteItem({ note, previousNoteTimestamp, onUpdate, onDelete }: NoteItemProps) {
-  const [isEditing, setIsEditing] = useState(false);
+export function NoteItem({ note, previousNoteTimestamp, onUpdate, onDelete, isEditing, onSetEditing }: NoteItemProps) {
   const [content, setContent] = useState(note.content);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const duration = previousNoteTimestamp
     ? formatDuration(formatDistanceStrict(note.timestamp, previousNoteTimestamp))
     : null;
+
+  useEffect(() => {
+    setContent(note.content);
+  }, [note.content]);
 
   useEffect(() => {
     if (isEditing) {
@@ -39,11 +44,10 @@ export function NoteItem({ note, previousNoteTimestamp, onUpdate, onDelete }: No
   }, [isEditing]);
 
   const handleBlur = () => {
-    setIsEditing(false);
-    if (content.trim() === '') {
-      onDelete(note.id);
-    } else if (content !== note.content) {
+    if (content !== note.content) {
       onUpdate(note.id, content);
+    } else {
+       onUpdate(note.id, note.content); // To signal exit from editing
     }
   };
 
@@ -53,7 +57,7 @@ export function NoteItem({ note, previousNoteTimestamp, onUpdate, onDelete }: No
     }
     if (e.key === 'Escape') {
       setContent(note.content);
-      setIsEditing(false);
+      // Let the global handler in ChronoNote handle the blur
     }
   };
 
@@ -69,7 +73,7 @@ export function NoteItem({ note, previousNoteTimestamp, onUpdate, onDelete }: No
           </div>
         )}
       </div>
-      <div className="flex-grow pt-0.5" onClick={() => setIsEditing(true)}>
+      <div className="flex-grow pt-0.5" onClick={() => onSetEditing(note.id)}>
         {isEditing ? (
           <input
             ref={inputRef}
