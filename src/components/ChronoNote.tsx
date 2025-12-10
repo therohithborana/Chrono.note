@@ -4,8 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import type { Note } from '@/lib/types';
 import { NoteItem } from '@/components/NoteItem';
-import { Share2, History } from 'lucide-react';
-import { Button } from './ui/button';
+import { cn } from '@/lib/utils';
 
 interface ChronoNoteProps {
   initialNotesData?: string;
@@ -16,6 +15,7 @@ export function ChronoNote({ initialNotesData }: ChronoNoteProps) {
   const [newNoteContent, setNewNoteContent] = useState('');
   const [currentTime, setCurrentTime] = useState('');
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [isPrivacyMode, setIsPrivacyMode] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -24,7 +24,9 @@ export function ChronoNote({ initialNotesData }: ChronoNoteProps) {
     }, 1000);
 
     // Set initial time on client to avoid hydration mismatch
-    setCurrentTime(new Date().toLocaleTimeString('en-US', { hour12: false }));
+    if (typeof window !== 'undefined') {
+      setCurrentTime(new Date().toLocaleTimeString('en-US', { hour12: false }));
+    }
 
     return () => clearInterval(timer);
   }, []);
@@ -81,7 +83,10 @@ export function ChronoNote({ initialNotesData }: ChronoNoteProps) {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === 'p' && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault();
+        setIsPrivacyMode(prev => !prev);
+      } else if (event.key === 'Escape') {
         handleBlur();
       }
     };
@@ -128,24 +133,6 @@ export function ChronoNote({ initialNotesData }: ChronoNoteProps) {
     updateNotes(updatedNotes);
   }, [notes]);
 
-  const handleShare = useCallback(() => {
-    if (notes.length === 0) {
-      toast({
-        title: "Cannot share empty notes",
-        description: "Add some notes before sharing.",
-        variant: "destructive",
-      });
-      return;
-    }
-    const data = JSON.stringify(notes);
-    const encodedData = btoa(encodeURIComponent(data));
-    const url = `${window.location.origin}/?notes=${encodedData}`;
-
-    navigator.clipboard.writeText(url).then(() => {
-      toast({ title: "Share link copied to clipboard!" });
-    });
-  }, [notes, toast]);
-
   return (
     <div className="max-w-3xl mx-auto p-4 sm:p-6 lg:p-8 font-sans">
       <div className='px-4 pt-12'>
@@ -157,6 +144,7 @@ export function ChronoNote({ initialNotesData }: ChronoNoteProps) {
               key={note.id}
               note={note}
               isEditing={editingNoteId === note.id}
+              isBlurred={isPrivacyMode}
               onSetEditing={() => setEditingNoteId(note.id)}
               nextNoteTimestamp={index < notes.length - 1 ? notes[index + 1].timestamp : null}
               onUpdate={handleUpdateNote}
@@ -175,7 +163,10 @@ export function ChronoNote({ initialNotesData }: ChronoNoteProps) {
               value={newNoteContent}
               onChange={(e) => setNewNoteContent(e.target.value)}
               placeholder="Start writing..."
-              className="w-full text-base bg-transparent border-none focus:ring-0 p-0 m-0 placeholder:text-muted-foreground"
+              className={cn(
+                "w-full text-base bg-transparent border-none focus:ring-0 p-0 m-0 placeholder:text-muted-foreground",
+                isPrivacyMode && "blur-sm"
+              )}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault();

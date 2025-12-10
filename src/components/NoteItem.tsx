@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { format, formatDistanceStrict } from 'date-fns';
 import type { Note } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
 interface NoteItemProps {
   note: Note;
@@ -8,6 +9,7 @@ interface NoteItemProps {
   onUpdate: (id: string, content: string) => void;
   onDelete: (id: string) => void;
   isEditing: boolean;
+  isBlurred: boolean;
   onSetEditing: (id: string) => void;
 }
 
@@ -21,7 +23,7 @@ const formatDuration = (duration: string) => {
     .replace(' hour', 'h');
 };
 
-export function NoteItem({ note, nextNoteTimestamp, onUpdate, onDelete, isEditing, onSetEditing }: NoteItemProps) {
+export function NoteItem({ note, nextNoteTimestamp, onUpdate, onDelete, isEditing, isBlurred, onSetEditing }: NoteItemProps) {
   const [content, setContent] = useState(note.content);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -75,10 +77,18 @@ export function NoteItem({ note, nextNoteTimestamp, onUpdate, onDelete, isEditin
               onChange={(e) => setContent(e.target.value)}
               onBlur={handleBlur}
               onKeyDown={handleKeyDown}
-              className="w-full text-base bg-transparent border-none focus:ring-0 p-0 m-0"
+              className={cn(
+                "w-full text-base bg-transparent border-none focus:ring-0 p-0 m-0",
+                isBlurred && "blur-sm"
+              )}
             />
           ) : (
-            <p className="text-foreground/90 whitespace-pre-wrap">{content}</p>
+            <p className={cn(
+              "text-foreground/90 whitespace-pre-wrap",
+              isBlurred && "blur-sm"
+            )}>
+              {content}
+            </p>
           )}
         </div>
       </div>
