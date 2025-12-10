@@ -63,7 +63,7 @@ export function NoteItem({ note, previousNoteTimestamp, onUpdate, onDelete, isEd
 
   return (
     <div className="group flex flex-row items-start gap-4">
-      <div className="w-20 shrink-0 font-mono text-sm">
+      <div className="w-20 shrink-0 font-mono text-sm text-right">
         <span className="text-muted-foreground pt-2">
           {format(new Date(note.timestamp), 'HH:mm:ss')}
         </span>
