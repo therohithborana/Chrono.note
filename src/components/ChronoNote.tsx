@@ -15,7 +15,19 @@ interface ChronoNoteProps {
 export function ChronoNote({ initialNotesData }: ChronoNoteProps) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [newNoteContent, setNewNoteContent] = useState('');
+  const [currentTime, setCurrentTime] = useState('');
   const { toast } = useToast();
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(format(new Date(), 'HH:mm:ss'));
+    }, 1000);
+
+    // Set initial time
+    setCurrentTime(format(new Date(), 'HH:mm:ss'));
+    
+    return () => clearInterval(timer);
+  }, []);
 
   const loadNotes = useCallback(() => {
     try {
@@ -149,7 +161,7 @@ export function ChronoNote({ initialNotesData }: ChronoNoteProps) {
         
         <div className="flex items-start gap-4 mt-1 w-full">
            <span className="text-sm text-muted-foreground font-mono w-20 shrink-0 pt-2">
-            {format(new Date(), 'HH:mm:ss')}
+            {currentTime || '00:00:00'}
           </span>
           <div className='flex-grow'>
             <input
