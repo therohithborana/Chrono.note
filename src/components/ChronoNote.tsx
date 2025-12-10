@@ -24,6 +24,7 @@ export function ChronoNote({ initialNotesData }: ChronoNoteProps) {
       setCurrentTime(new Date().toLocaleTimeString('en-US', { hour12: false }));
     }, 1000);
 
+    // Set initial time on client
     setCurrentTime(new Date().toLocaleTimeString('en-US', { hour12: false }));
 
     return () => clearInterval(timer);
@@ -116,6 +117,7 @@ export function ChronoNote({ initialNotesData }: ChronoNoteProps) {
       handleDeleteNote(noteId);
       return;
     }
+    // Do not update timestamp on edit
     const updatedNotes = notes.map(note => 
       note.id === noteId ? { ...note, content } : note
     );
@@ -178,7 +180,7 @@ export function ChronoNote({ initialNotesData }: ChronoNoteProps) {
               note={note}
               isEditing={editingNoteId === note.id}
               onSetEditing={() => setEditingNoteId(note.id)}
-              previousNoteTimestamp={index > 0 ? notes[index - 1].timestamp : null}
+              nextNoteTimestamp={index < notes.length - 1 ? notes[index + 1].timestamp : null}
               onUpdate={handleUpdateNote}
               onDelete={handleDeleteNote}
             />
